@@ -1,0 +1,140 @@
+template:
+  id: application-analysis
+  name: Application & Feed Layer Analysis
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/application-analysis-{{app_name}}.md
+    title: "Application & Feed Layer Analysis for {{app_name}}"
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+sections:
+  - id: handling
+    title: Handling
+    instruction: |
+      Begin with a local-only handling reminder. This concerns internal application/feed source,
+      live feed data, and Data Lake schemas — all must stay on internal / local-only systems.
+      Confirm the source is the organization's own custom-app/integration code, NOT vendor platform
+      source.
+    template: |
+      > **INTERNAL / LOCAL-ONLY:** Source, feeds, and analysis stay inside the organization.
+      > Confirmed own-code (not vendor platform): {{own_code_confirmed}} — by {{analyst}} on {{date}}
+
+  - id: overview
+    title: Overview
+    instruction: Identify the app and its role in the feed pipeline.
+    template: |
+      - **App name:** {{app_name}}
+      - **App type / runtimeLevel:** {{runtime_level}}  (Job | ApiService | WebhookTriggerService | TriggerService | Playbook)
+      - **Purpose:** {{purpose}}
+      - **Owner / team:** {{owner}}
+      - **Entry point:** {{entry_point}}
+      - **Language:** {{language}}
+
+  - id: feeds
+    title: Feed Inventory
+    instruction: |
+      One row per feed/source this app handles. Capture protocol, endpoint, auth, cadence, format.
+    template: |
+      | Feed / source | Protocol | Endpoint(s) | Auth | Cadence | Payload format |
+      |---|---|---|---|---|---|
+      | {{feed}} | {{protocol}} | {{endpoint}} | {{auth}} | {{cadence}} | {{format}} |
+
+  - id: ingestion_flow
+    title: Ingestion Flow
+    instruction: |
+      Narrate the pipeline stage by stage as found in code: fetch → parse → normalize → data logic →
+      write → mirror. Keep it factual to the source.
+    template: |
+      1. **Fetch:** {{fetch}}
+      2. **Parse:** {{parse}}
+      3. **Normalize:** {{normalize}}
+      4. **Data logic:** {{data_logic_summary}}
+      5. **Write:** {{write}}
+      6. **Mirror (lake):** {{mirror}}
+
+  - id: data_logic
+    title: Data Logic Catalog
+    instruction: |
+      The core deliverable — every data rule, one row each. Type ∈ map/type/score/tag/attribute/
+      label/associate/dedup/filter/enrich/batch. Mark deterministic vs judgment and the target.
+    template: |
+      | Rule | Type | Inputs / condition | Deterministic? | Target (Kestra task / ADK tool / TC client / ADK agent) |
+      |---|---|---|---|---|
+      | {{rule}} | {{rtype}} | {{cond}} | {{det}} | {{target}} |
+
+  - id: sinks
+    title: Writes & Data Sinks
+    instruction: |
+      Capture BOTH sinks precisely. The Data Lake sink schema/path is the key to whether Kestra can
+      source inputs from the lake instead of rebuilding ingestion.
+    sections:
+      - id: tc_writes
+        title: ThreatConnect writes
+        instruction: Entities/fields created or updated via Batch/v3.
+        template: |
+          - **Entities written:** {{tc_entities}}
+          - **Fields / attributes / tags / associations:** {{tc_fields}}
+          - **Create vs update / dedup semantics:** {{tc_semantics}}
+      - id: lake_sink
+        title: Data Lake sink
+        instruction: The secondary write. Extract system, location, schema, fields, completeness.
+        template: |
+          - **Sink system:** {{lake_system}}  (S3/Blob | Kafka/Kinesis | Snowflake/BigQuery | JDBC | file)
+          - **Path / topic / table:** {{lake_location}}
+          - **Schema / fields mirrored:** {{lake_schema}}
+          - **Looks complete & lossless?** {{lake_complete}}
+
+  - id: lake_gap
+    title: Data Lake Mapping & Gap
+    instruction: |
+      The decision-grade section. State what is available in the lake vs only inside TC, and whether
+      Kestra can read this app's inputs/outputs straight from the lake.
+    template: |
+      - **Available in the lake:** {{in_lake}}
+      - **Only inside ThreatConnect:** {{tc_only}}
+      - **Can Kestra source from the lake instead of rebuilding ingestion?** {{kestra_from_lake}}
+      - **What must be confirmed with samples/reconciliation:** {{lake_confirm}}
+
+  - id: config
+    title: Config vs Hardcoded
+    instruction: What is parameterizable (args/env/config) vs literal in code.
+    template: |
+      - **Config-driven:** {{config_driven}}
+      - **Hardcoded:** {{hardcoded}}
+
+  - id: deps
+    title: External Dependencies
+    instruction: External APIs, internal services, libraries, DB/queue connections, TcEx coupling.
+    template: |
+      - **External APIs / services:** {{ext_deps}}
+      - **TcEx-isms to strip:** {{tcex_isms}}
+
+  - id: target
+    title: Target Mapping
+    instruction: |
+      How the application layer moves: ingestion → Kestra trigger; pipeline stages → deterministic
+      Kestra tasks / ADK tools; lake as input substrate. Note any genuine agentic opportunity — and
+      that it belongs over the lake, not in ingestion.
+    template: |
+      - **Trigger:** {{target_trigger}}
+      - **Pipeline tasks (deterministic):** {{target_tasks}}
+      - **TC writes via:** clean TC v3 REST/Batch client
+      - **Agentic opportunity (over the lake, if any):** {{agentic_note}}
+
+  - id: gaps
+    title: Open Questions / Runtime Confirmation
+    instruction: What source cannot tell you and how to close each gap.
+    template: |
+      | Unknown | Why source can't confirm | How to close (sample / runbook / reconciliation) |
+      |---|---|---|
+      | {{unknown}} | {{why}} | {{close}} |
+
+  - id: risk
+    title: Risk & Sensitivity
+    instruction: Sensitive/regulated data handled, credentials touched, blast radius.
+    template: |
+      - **Sensitive / regulated data:** {{sensitive}}
+      - **Credentials / secrets touched:** {{secrets}}
+      - **Internal / local-only handling re-confirmed:** {{handling_confirmed}}

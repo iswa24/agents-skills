@@ -30,7 +30,7 @@ A BMAD expansion pack of expert agents and skills that **review ThreatConnect pl
 |---|---|---|
 | 🎼 Convoy — Conductor | `agents/tc-conductor.md` | Orchestrator / conversion lead — routes work, owns the master plan, batching, cutover governance |
 | 🏺 Digger — Playbook Archaeologist | `agents/tc-playbook-archaeologist.md` | Reverse-engineers playbook exports: trigger, apps, variables, components, TC writes |
-| 🔬 Forge — Code Forensics | `agents/tc-code-forensics.md` | Reads custom TcEx app source, extracts logic, strips coupling |
+| 🔬 Forge — Application, Feed & Code Forensics | `agents/tc-code-forensics.md` | Reads application-layer source (Job/Service/Playbook apps & feed connectors): what the app does with feeds, the data logic, both data sinks (TC + Data Lake), and strips TcEx coupling |
 | 🧭 Axiom — Agentic Architect | `agents/tc-agentic-architect.md` | The deterministic-vs-agent split, target design, guardrails |
 | 🔀 Flux — Kestra Engineer | `agents/tc-kestra-engineer.md` | Flows, triggers, control flow, subflows, retries, approval gates |
 | 🤖 Vertex — ADK Engineer | `agents/tc-adk-engineer.md` | ADK agents, tools, state, callbacks, deployment |
@@ -43,16 +43,17 @@ Team bundle: `agent-teams/tc-modernization-team.yaml`.
 **Knowledge bases — `data/`**
 - `tc-playbook-kb.md` — ThreatConnect playbook reference + variable typing + data model
 - `tcex-coupling-kb.md` — TcEx patterns → clean replacements (what to strip)
+- `feed-ingestion-kb.md` — the **application/feed layer**: TC app types (Job/Service), feed protocols (TAXII/STIX/REST/webhook), data-logic patterns, both data sinks, and the data-flow extraction method
 - `kestra-patterns-kb.md` — TC constructs → Kestra flow patterns, with example flows
 - `adk-patterns-kb.md` — ADK agent/tool patterns + the reusable TI agent archetypes
 - `agentic-decision-kb.md` — the deterministic-vs-agent decision rules (the core judgment file)
 - `deployment-constraints-kb.md` — **local Kestra, remote models, no GCP**: model-per-role recommendation matrix (Claude-on-Bedrock default; Azure OpenAI alternatives), access via the internal ADK wrapper by tier, on-prem topology, session/artifact stores
 
 **Task workflows — `tasks/`**
-`inventory-playbook` → `classify-archetype` → `decompose-logic` → `design-target` → `produce-conversion-plan` → `shadow-run-validation`
+`inventory-playbook` · `review-application-layer` → `classify-archetype` → `decompose-logic` → `design-target` → `produce-conversion-plan` → `shadow-run-validation`
 
 **Templates — `templates/`**
-`playbook-analysis-tmpl.yaml`, `conversion-design-tmpl.yaml`, `migration-plan-tmpl.yaml`
+`playbook-analysis-tmpl.yaml`, `application-analysis-tmpl.yaml`, `conversion-design-tmpl.yaml`, `migration-plan-tmpl.yaml`
 
 **Checklists — `checklists/`**
 `playbook-readiness-checklist.md`, `conversion-quality-checklist.md`
@@ -62,12 +63,13 @@ Team bundle: `agent-teams/tc-modernization-team.yaml`.
 The lifecycle, per playbook, then rolled up:
 
 1. **Inventory** (Archaeologist `*analyze`) — fill the analysis doc from the export.
-2. **Code forensics** (Forge `*review-app`) — for any custom TcEx apps.
-3. **Classify** (Architect `*archetype`) — assign A/B/C/D.
-4. **Decompose** (Architect `*split`) — deterministic vs agent per node.
-5. **Design** (Architect `*design` → Kestra `*flow` + ADK `*agent`) — the target.
-6. **Plan** (Conductor `*plan`) — roll up to the program migration plan.
-7. **Validate** (Conductor `*validate`) — shadow-run parity + eval before cutover.
+2. **Application/feed review** (Forge `*review-application-layer`) — for feed/ingestion & service apps: reconstruct what the app does with feeds, catalog the data logic, and capture both data sinks (TC + Data Lake). This answers "where the data sits / what data logic is built" and produces the lake-gap assessment that drives the target-state decision.
+3. **Code forensics** (Forge `*review-app`) — for any custom TcEx apps a playbook calls.
+4. **Classify** (Architect `*archetype`) — assign A/B/C/D.
+5. **Decompose** (Architect `*split`) — deterministic vs agent per node.
+6. **Design** (Architect `*design` → Kestra `*flow` + ADK `*agent`) — the target.
+7. **Plan** (Conductor `*plan`) — roll up to the program migration plan.
+8. **Validate** (Conductor `*validate`) — shadow-run parity + eval before cutover.
 
 Quick single-playbook pass? Use **Solo** (`tc-convert`) end-to-end.
 

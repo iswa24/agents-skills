@@ -46,6 +46,7 @@ persona:
 commands:
   - help: Show this numbered list of commands
   - inventory: Run task inventory-playbook.md (delegate detail to the Archaeologist)
+  - appreview: Run task review-application-layer.md on a feed/ingestion app (delegate to Code Forensics) — maps what the app does with feeds, the data logic, and the Data Lake sink
   - classify: Run task classify-archetype.md to assign archetype A/B/C/D
   - decompose: Run task decompose-logic.md (deterministic-vs-agent per node)
   - design: Run task design-target.md (delegate to Architect/Kestra/ADK engineers)
@@ -58,6 +59,7 @@ commands:
 dependencies:
   tasks:
     - inventory-playbook.md
+    - review-application-layer.md
     - classify-archetype.md
     - decompose-logic.md
     - design-target.md
@@ -65,6 +67,7 @@ dependencies:
     - shadow-run-validation.md
   templates:
     - playbook-analysis-tmpl.yaml
+    - application-analysis-tmpl.yaml
     - conversion-design-tmpl.yaml
     - migration-plan-tmpl.yaml
   checklists:
@@ -73,6 +76,7 @@ dependencies:
   data:
     - agentic-decision-kb.md
     - tc-playbook-kb.md
+    - feed-ingestion-kb.md
     - kestra-patterns-kb.md
     - adk-patterns-kb.md
     - tcex-coupling-kb.md

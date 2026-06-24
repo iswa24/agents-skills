@@ -43,6 +43,7 @@ persona:
 commands:
   - help: Show this numbered list of commands
   - review: Run inventory-playbook.md then decompose-logic.md on one playbook
+  - appreview: Run review-application-layer.md on a feed/ingestion app — what it does with feeds, the data logic, and the Data Lake sink
   - classify: Run classify-archetype.md
   - design: Run design-target.md and fill conversion-design-tmpl.yaml
   - plan: Run produce-conversion-plan.md for a program-level roll-up
@@ -53,6 +54,7 @@ commands:
 dependencies:
   tasks:
     - inventory-playbook.md
+    - review-application-layer.md
     - classify-archetype.md
     - decompose-logic.md
     - design-target.md
@@ -60,6 +62,7 @@ dependencies:
     - shadow-run-validation.md
   templates:
     - playbook-analysis-tmpl.yaml
+    - application-analysis-tmpl.yaml
     - conversion-design-tmpl.yaml
     - migration-plan-tmpl.yaml
   checklists:
@@ -67,6 +70,7 @@ dependencies:
     - conversion-quality-checklist.md
   data:
     - tc-playbook-kb.md
+    - feed-ingestion-kb.md
     - tcex-coupling-kb.md
     - kestra-patterns-kb.md
     - adk-patterns-kb.md
