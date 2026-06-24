@@ -1,0 +1,152 @@
+template:
+  id: conversion-design
+  name: TC Playbook Conversion Design
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/conversion-design-{{playbook_name}}.md
+    title: "Conversion Design for {{playbook_name}}"
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+sections:
+  - id: deterministic-first-principle
+    title: Guiding Principle — Deterministic First
+    instruction: |
+      State the governing principle for this design up front and hold the design to it.
+      Two-plane architecture: Kestra is the deterministic CONTROL plane; Google ADK is
+      the REASONING plane and agents are reserved ONLY for genuine judgment, natural
+      language, or ambiguity. Anything that can be deterministic MUST be deterministic
+      (Kestra task or shared TC client). Reuse the ~6-10 shared agents before creating
+      a new one. We fully exit TcEx and call a clean TC v3 REST/Batch client only.
+    template: |
+      > **Deterministic-first:** Every node that can run deterministically runs in the
+      > Kestra control plane. ADK agents appear only where judgment / NL / ambiguity is
+      > unavoidable. Reuse shared agents before adding new ones. No TcEx at runtime.
+
+  - id: archetype-rationale
+    title: Archetype & Rationale
+    instruction: |
+      Classify this playbook into an archetype and justify it. Archetypes:
+      A = purely deterministic (no agent, zero token cost);
+      B = deterministic with a single bounded agent call (e.g. one enrichment summary);
+      C = multi-step with reused agents and orchestration judgment;
+      D = heavily agentic / open-ended reasoning (rare, requires strong justification).
+      Bias toward the lowest archetype that faithfully covers the behavior.
+    template: |
+      - **Archetype:** {{archetype}}  <!-- A / B / C / D -->
+      - **Rationale:** {{rationale}}
+      - **Why not a lower archetype:** {{why_not_lower}}
+
+  - id: per-node-decomposition
+    title: Per-Node Decomposition
+    instruction: |
+      For every node from the Playbook Analysis node inventory, assign a target.
+      Target MUST be one of: Kestra task | ADK FunctionTool | ADK agent | shared TC client.
+      Default to deterministic targets. Only assign "ADK agent" when at least one of the
+      judgment / NL / ambiguity flags is true, and explain it. FunctionTool means a
+      deterministic tool an agent may call — still deterministic logic, not reasoning.
+    template: |
+      | Node ID | Target | Judgment? | NL? | Ambiguity? | Justification |
+      |---------|--------|-----------|-----|-----------|---------------|
+      | {{node_id}} | {{target}} | {{judgment}} | {{nl}} | {{ambiguity}} | {{justification}} |
+
+  - id: kestra-flow-design
+    title: Kestra Flow Design
+    instruction: |
+      Design the deterministic control plane. Specify the trigger, the DAG of tasks,
+      control flow (if/switch/loop), fan-out (EachParallel), approval/Pause gates before
+      any destructive or outbound action, retry/error policy, and secret references.
+      Provide an illustrative flow YAML scaffold — it does not need to be runnable but
+      should show structure, task ids, error handling, and where ADK is called.
+    template: |
+      - **Trigger:** {{kestra_trigger}}
+      - **Control flow:** {{control_flow}}
+      - **Fan-out:** {{fanout}}
+      - **Approval / Pause gates:** {{approval_gates}}
+      - **Retries / error handling:** {{retries}}
+      - **Secrets referenced:** {{secrets}}
+
+      ```yaml
+      id: {{playbook_slug}}
+      namespace: tc.playbooks
+      tasks:
+        - id: validate-input
+          type: io.kestra.plugin.scripts.python.Commands
+        - id: enrich
+          type: io.kestra.plugin.core.flow.EachParallel
+          value: "{{ inputs.indicators }}"
+          tasks:
+            - id: tc-lookup
+              type: io.kestra.plugin.core.http.Request   # via clean TC v3 client
+        - id: agent-decision        # ADK call, only if archetype B/C/D
+          type: io.kestra.plugin.core.http.Request       # endpoint-style ADK invocation
+        - id: approval-gate
+          type: io.kestra.plugin.core.flow.Pause          # before destructive TC write
+        - id: tc-write
+          type: io.kestra.plugin.core.http.Request
+      errors:
+        - id: on-error
+          type: io.kestra.plugin.core.log.Log
+      ```
+
+  - id: adk-agents-tools
+    title: ADK Agents & Tools
+    instruction: |
+      Specify the reasoning plane. State which of the ~6-10 reusable agents are reused
+      (triage, enrichment-orchestrator, narrative-writer, correlation/pivot, dedup-judge,
+      case-summarizer, etc.) vs. any genuinely new agent (justify new ones hard). Define
+      tools as FunctionTool / OpenAPIToolset / MCP. Specify output_schema for structured
+      returns, callbacks/guardrails, the integration pattern (endpoint service vs inline
+      library call from Kestra), and the model choice including any LiteLlm routing.
+    template: |
+      - **Reused agents:** {{reused_agents}}
+      - **New agents (justified):** {{new_agents}}
+      | Agent | Tools (FunctionTool / OpenAPI / MCP) | output_schema | Callbacks / Guardrails |
+      |-------|--------------------------------------|---------------|------------------------|
+      | {{agent}} | {{tools}} | {{output_schema}} | {{guardrails}} |
+      - **Integration pattern:** {{integration_pattern}}  <!-- endpoint service vs inline -->
+      - **Model choice:** {{model}}  <!-- e.g. Gemini Flash via LiteLlm; tier by archetype -->
+
+  - id: shared-models-tc-client
+    title: Shared Models & TC Client Calls
+    instruction: |
+      Map the typed shared data models used and every TC client call made. Use the clean
+      TC v3 REST/Batch client only — NO TcEx. Preserve TC typing (TCEntity, Binary, etc.).
+      Specify create/update/delete operations, batch vs single, and owner scoping.
+    template: |
+      - **Shared models used:** {{models}}
+      | TC Client Call | Operation | REST vs Batch | Owner | Typed Payload |
+      |----------------|-----------|---------------|-------|---------------|
+      | {{call}} | {{op}} | {{rest_batch}} | {{owner}} | {{payload}} |
+
+  - id: guardrails-security
+    title: Guardrails & Security
+    instruction: |
+      Specify the security posture: least-privilege scoping for TC and integration creds,
+      approval gates before destructive/outbound actions, externalized secrets (agents
+      hold NO credentials), and audit/trace logging. Callbacks must enforce policy.
+    template: |
+      - **Least privilege:** {{least_privilege}}
+      - **Approval gates:** {{approval_gates}}
+      - **Secrets handling (agents hold none):** {{secrets_handling}}
+      - **Audit / trace:** {{audit}}
+
+  - id: eval-acceptance
+    title: Eval & Acceptance Criteria
+    instruction: |
+      Define how we prove the conversion is correct. Specify deterministic parity checks
+      (outputs must match the legacy playbook exactly), agent eval thresholds against a
+      golden set, and the acceptance criteria for promotion out of shadow-run.
+    template: |
+      - **Deterministic parity checks:** {{parity}}
+      - **Agent eval golden set + thresholds:** {{eval_thresholds}}
+      - **Acceptance criteria:** {{acceptance}}
+
+  - id: open-questions
+    title: Open Questions
+    instruction: |
+      List unresolved questions, assumptions to validate, and decisions deferred to
+      review. Do not let open questions block documenting the rest of the design.
+    template: |
+      - {{open_question}}

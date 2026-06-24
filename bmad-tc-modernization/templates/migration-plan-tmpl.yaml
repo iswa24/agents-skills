@@ -1,0 +1,178 @@
+template:
+  id: migration-plan
+  name: TC-to-Kestra/ADK Migration Plan
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/migration-plan-{{program_name}}.md
+    title: "TC Modernization Migration Plan — {{program_name}}"
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+sections:
+  - id: executive-summary
+    title: Executive Summary
+    instruction: |
+      One page for leadership. State the goal: migrate ~60 ThreatConnect playbooks off
+      TcEx onto a two-plane architecture — Kestra as the deterministic control plane and
+      Google ADK as the reasoning plane, with agents reserved only for judgment / NL /
+      ambiguity. Emphasize that a small reusable agent library (~6-10 agents) serves all
+      playbooks, not one agent per playbook, and that we build shared foundations first.
+      Summarize scope, approach, timeline, and the headline risks.
+    template: |
+      - **Goal:** {{goal}}
+      - **Scope:** {{scope}}  <!-- ~60 playbooks, full TcEx exit -->
+      - **Approach:** Two-plane (Kestra deterministic + ADK reasoning); deterministic-first; reuse-first agents.
+      - **Timeline:** {{timeline}}
+      - **Headline risks:** {{headline_risks}}
+
+  - id: inventory-archetype-distribution
+    title: Playbook Inventory & Archetype Distribution
+    instruction: |
+      Summarize the full playbook population by archetype. A = purely deterministic
+      (zero token cost); B = deterministic + one bounded agent call; C = multi-step with
+      reused agents; D = heavily agentic (rare). Report counts and the percentage that
+      need any agent at all — this should be a minority. Reference per-playbook analyses.
+    template: |
+      | Archetype | Description | Count | % of Total |
+      |-----------|-------------|-------|-----------|
+      | A | Purely deterministic | {{count_a}} | {{pct_a}} |
+      | B | Deterministic + 1 bounded agent | {{count_b}} | {{pct_b}} |
+      | C | Multi-step, reused agents | {{count_c}} | {{pct_c}} |
+      | D | Heavily agentic | {{count_d}} | {{pct_d}} |
+      - **% of playbooks needing any agent:** {{pct_agentic}}
+
+  - id: reusable-agent-library
+    title: Reusable Agent Library
+    instruction: |
+      Define the ~6-10 reusable ADK agents that serve ALL playbooks. Each agent is a
+      capability, not a per-playbook clone. For each, give its judgment/NL/ambiguity
+      reason for existing, its tools, and its output_schema. Resist proliferation.
+      Seed set: triage, enrichment-orchestrator, narrative-writer, correlation/pivot,
+      dedup-judge, case-summarizer (extend only with strong justification).
+    template: |
+      | Agent | Reason it must reason (judgment/NL/ambiguity) | Key Tools | output_schema |
+      |-------|-----------------------------------------------|-----------|---------------|
+      | triage | {{triage_reason}} | {{triage_tools}} | {{triage_schema}} |
+      | enrichment-orchestrator | {{enrich_reason}} | {{enrich_tools}} | {{enrich_schema}} |
+      | narrative-writer | {{narr_reason}} | {{narr_tools}} | {{narr_schema}} |
+      | correlation-pivot | {{corr_reason}} | {{corr_tools}} | {{corr_schema}} |
+      | dedup-judge | {{dedup_reason}} | {{dedup_tools}} | {{dedup_schema}} |
+      | case-summarizer | {{summ_reason}} | {{summ_tools}} | {{summ_schema}} |
+      | {{extra_agent}} | {{extra_reason}} | {{extra_tools}} | {{extra_schema}} |
+
+  - id: shared-foundation
+    title: Shared Foundation (Build First)
+    instruction: |
+      Enumerate the shared platform components that MUST be built before any playbook is
+      converted. These are the leverage points that make all 60 conversions cheap and
+      consistent. Nothing in the factory phase should be blocked on missing foundation.
+    template: |
+      - **TC data-model library:** {{model_lib}}  <!-- typed shared models preserving TC typing -->
+      - **TC API / Batch client:** {{tc_client}}   <!-- clean TC v3 REST/Batch, NO TcEx -->
+      - **Enrichment tool library:** {{enrichment_lib}}  <!-- VT/Splunk/ServiceNow as FunctionTools -->
+      - **Agent scaffolds:** {{agent_scaffolds}}   <!-- base agent + callbacks/guardrails -->
+      - **Eval harness:** {{eval_harness}}          <!-- golden sets, thresholds, parity checks -->
+      - **CI/CD + secrets:** {{cicd_secrets}}        <!-- externalized secrets, promotion pipeline -->
+      - **Observability:** {{observability}}         <!-- tracing across Kestra → ADK → tools -->
+
+  - id: roadmap
+    title: 6-Phase Roadmap
+    instruction: |
+      Lay out the six phases with explicit entry and exit criteria for each. Phases:
+      1) Discovery, 2) Foundation, 3) Pilot, 4) Factory, 5) Parallel-run/validate,
+      6) Cutover/decommission. Exit criteria must be objective and eval-gated where
+      relevant. No phase starts until the prior phase's exit criteria are met.
+    sections:
+      - id: phase-discovery
+        title: "Phase 1 — Discovery"
+        instruction: Inventory and analyze all playbooks; classify archetypes; locate all custom-app source.
+        template: |
+          - **Entry:** {{p1_entry}}
+          - **Exit:** All 60 playbooks analyzed, archetyped, readiness-checklist passed.
+      - id: phase-foundation
+        title: "Phase 2 — Foundation"
+        instruction: Build the shared foundation components before any conversion.
+        template: |
+          - **Entry:** {{p2_entry}}
+          - **Exit:** TC client, models, tool lib, agent scaffolds, eval harness, CI/CD, observability all live.
+      - id: phase-pilot
+        title: "Phase 3 — Pilot"
+        instruction: Convert a small representative set spanning archetypes A–C to prove the pattern.
+        template: |
+          - **Entry:** {{p3_entry}}
+          - **Exit:** Pilot playbooks pass shadow-run parity and eval thresholds.
+      - id: phase-factory
+        title: "Phase 4 — Factory"
+        instruction: Convert the bulk in batches grouped by archetype and shared dependencies.
+        template: |
+          - **Entry:** {{p4_entry}}
+          - **Exit:** All batches converted with design + quality checklists passed.
+      - id: phase-parallel-run
+        title: "Phase 5 — Parallel-run / Validate"
+        instruction: Run new and legacy side by side; compare deterministic outputs and agent eval metrics.
+        template: |
+          - **Entry:** {{p5_entry}}
+          - **Exit:** Parity and eval thresholds met for the validation window.
+      - id: phase-cutover
+        title: "Phase 6 — Cutover / Decommission"
+        instruction: Switch traffic, retire legacy TC playbooks and TcEx apps, decommission.
+        template: |
+          - **Entry:** {{p6_entry}}
+          - **Exit:** Legacy disabled, TcEx fully removed, rollback window closed.
+
+  - id: batching-strategy
+    title: Batching Strategy
+    instruction: |
+      Describe how playbooks are grouped into conversion batches. Group by archetype and
+      shared dependencies (same components, same integrations, same agents) so each batch
+      reuses foundation work and shares an eval set. Sequence simplest/highest-leverage first.
+    template: |
+      | Batch | Grouping Basis | Playbooks | Shared Deps |
+      |-------|----------------|-----------|-------------|
+      | {{batch}} | {{basis}} | {{playbooks}} | {{shared_deps}} |
+
+  - id: shadow-cutover-criteria
+    title: Shadow-run & Cutover Criteria
+    instruction: |
+      Define the objective bar to promote a playbook from shadow to live. Deterministic
+      outputs must match the legacy playbook exactly; agent outputs must stay within
+      defined eval thresholds across the shadow window; no unexpected TC writes.
+    template: |
+      - **Deterministic parity required:** {{parity_bar}}
+      - **Agent eval thresholds:** {{agent_thresholds}}
+      - **Shadow window length:** {{shadow_window}}
+      - **Cutover gate:** {{cutover_gate}}
+
+  - id: risks-mitigations
+    title: Risks & Mitigations
+    instruction: |
+      Identify program risks and concrete mitigations. Cover TcEx coupling surprises,
+      destructive TC writes, integration auth, agent reliability/cost, and data handling.
+    template: |
+      | Risk | Likelihood | Impact | Mitigation |
+      |------|-----------|--------|-----------|
+      | {{risk}} | {{likelihood}} | {{impact}} | {{mitigation}} |
+
+  - id: governance
+    title: Governance
+    instruction: |
+      State the governance model: guardrails on every destructive/outbound action,
+      least-privilege credentials, agents holding no secrets, and eval-gated promotion
+      (no playbook goes live without passing its eval and parity gates).
+    template: |
+      - **Guardrails:** {{guardrails}}
+      - **Least privilege:** {{least_privilege}}
+      - **Eval-gated promotion:** {{eval_gated}}
+      - **Audit & sign-off:** {{audit_signoff}}
+
+  - id: effort-sequencing
+    title: Effort & Sequencing
+    instruction: |
+      Provide a rough effort estimate and the sequencing logic. Foundation is front-loaded;
+      per-playbook effort drops sharply after the factory pattern stabilizes. Note that
+      archetype-A playbooks are cheapest (zero token cost) and good early wins.
+    template: |
+      | Workstream | Effort | Sequence | Notes |
+      |-----------|--------|----------|-------|
+      | {{workstream}} | {{effort}} | {{sequence}} | {{notes}} |

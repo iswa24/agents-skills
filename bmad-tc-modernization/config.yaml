@@ -1,0 +1,13 @@
+name: bmad-tc-modernization
+version: 1.0.0
+short-title: ThreatConnect → Kestra + ADK Modernization Pack
+description: >-
+  Expansion pack of expert agents and skills that review ThreatConnect playbooks
+  and custom TcEx apps IN PLACE, then produce a deterministic-first conversion
+  plan and target design for Kestra orchestration + Google ADK agents. Nothing
+  leaves the organization — the team analyzes locally and emits analyses, designs, and a
+  migration plan. Core principle: two planes — Kestra owns deterministic
+  orchestration; ADK owns reasoning, with agents reserved only for judgment,
+  natural language, and ambiguity. Most playbook nodes stay deterministic.
+author: Security Engineering
+slashPrefix: tcmod

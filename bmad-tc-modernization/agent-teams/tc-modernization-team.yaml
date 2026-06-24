@@ -1,0 +1,16 @@
+bundle:
+  name: TC Modernization Team
+  icon: 🎼
+  description: >-
+    Full team for converting ThreatConnect playbooks to Kestra + Google ADK.
+    Led by the Conductor, with specialists for playbook reverse-engineering,
+    TcEx code forensics, agentic architecture, Kestra orchestration, and ADK
+    agent engineering. Deterministic-first doctrine; nothing leaves the organization.
+agents:
+  - tc-conductor
+  - tc-playbook-archaeologist
+  - tc-code-forensics
+  - tc-agentic-architect
+  - tc-kestra-engineer
+  - tc-adk-engineer
+workflows: []

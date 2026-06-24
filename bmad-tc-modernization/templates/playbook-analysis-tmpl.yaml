@@ -1,0 +1,151 @@
+template:
+  id: playbook-analysis
+  name: TC Playbook Analysis
+  version: 1.0
+  output:
+    format: markdown
+    filename: docs/playbook-analysis-{{playbook_name}}.md
+    title: "Playbook Analysis for {{playbook_name}}"
+workflow:
+  mode: interactive
+  elicitation: advanced-elicitation
+sections:
+  - id: handling-notice
+    title: Handling Notice
+    instruction: |
+      Begin every analysis with an internal handling reminder. This work concerns
+      internal ThreatConnect (TC) playbooks and threat intel. All exports, custom-app
+      source, indicators, and analysis MUST remain on internal / local-only systems.
+      Nothing — export bundles, IOCs, attribute values, code — may be pasted into,
+      uploaded to, or otherwise transmitted outside the organization boundary. Confirm the
+      analyst has read this before proceeding.
+    template: |
+      > **INTERNAL / LOCAL-ONLY:** All artifacts referenced here stay inside the organization.
+      > No export, IOC, attribute, or custom-app source leaves the organization boundary.
+      > Confirmed by: {{analyst}} on {{date}}
+
+  - id: overview
+    title: Overview
+    instruction: |
+      Capture the identity and importance of the playbook. Pull the name and owner
+      from the export metadata where possible; ask the analyst for purpose and
+      criticality if not derivable.
+    template: |
+      - **Playbook name:** {{playbook_name}}
+      - **Purpose:** {{purpose}}
+      - **Owner / team:** {{owner}}
+      - **Business criticality:** {{criticality}}  <!-- e.g. Tier-1 / Tier-2 / experimental -->
+      - **Run cadence / volume:** {{cadence_volume}}
+
+  - id: trigger
+    title: Trigger
+    instruction: |
+      Identify the TC trigger that starts this playbook and translate its semantics
+      into the equivalent Kestra trigger. Be precise about the event that fires it
+      and what payload the trigger delivers downstream.
+    template: |
+      - **Trigger type:** {{trigger_type}}  <!-- UserAction / Webhook / HTTPLink / Timer / TC event -->
+      - **Event semantics:** {{event_semantics}}  <!-- what real-world event fires this -->
+      - **Trigger payload:** {{trigger_payload}}
+      - **Target Kestra trigger:** {{kestra_trigger}}  <!-- Webhook / Schedule / Flow / Realtime trigger + rationale -->
+
+  - id: node-inventory
+    title: Node Inventory
+    instruction: |
+      Enumerate EVERY node in the playbook. Categorize each so downstream design can
+      decide deterministic-vs-agent placement. Category MUST be one of:
+      logic | transform | enrichment | custom | CRUD. Do not editorialize on the
+      target yet — that is the conversion-design step.
+    template: |
+      | Node ID | App / Type | Category | Purpose |
+      |---------|-----------|----------|---------|
+      | {{node_id}} | {{app_type}} | {{category}} | {{purpose}} |
+
+  - id: variables-data
+    title: Variables & Data
+    instruction: |
+      List every playbook variable, its TC type (String, StringArray, TCEntity,
+      TCEntityArray, Binary, BinaryArray, KeyValue, etc.), and the field it should
+      map to in the shared typed data model. Preserve TC typing fidelity — flag any
+      TCEntity/Binary that must survive as a typed structure rather than a string.
+    template: |
+      | Variable | TC Type | Target Shared-Model Field | Notes |
+      |----------|---------|---------------------------|-------|
+      | {{variable}} | {{tc_type}} | {{model_field}} | {{notes}} |
+
+  - id: components-used
+    title: Components Used
+    instruction: |
+      List TC Components referenced by this playbook. Components are reusable units
+      and are strong candidates to become Kestra subflows. Note inputs/outputs and
+      whether the component is shared across other playbooks.
+    template: |
+      | Component | Inputs → Outputs | Shared by other playbooks? | Subflow candidate |
+      |-----------|------------------|----------------------------|-------------------|
+      | {{component}} | {{io}} | {{shared}} | {{subflow_candidate}} |
+
+  - id: external-integrations
+    title: External Integrations
+    instruction: |
+      Identify every external system the playbook talks to (VirusTotal, Splunk,
+      ServiceNow, mail, internal APIs, etc.) and how it authenticates. Capture
+      auth mechanism and where the secret lives so secrets can be externalized later.
+    template: |
+      | Integration | Direction | Auth Mechanism | Secret Location | Rate Limits / Quotas |
+      |-------------|-----------|----------------|-----------------|----------------------|
+      | {{integration}} | {{direction}} | {{auth}} | {{secret_loc}} | {{limits}} |
+
+  - id: custom-apps
+    title: Custom Apps
+    instruction: |
+      For each custom/Run-app node, record the language, where the source lives, and
+      how tightly it is coupled to TcEx. TcEx coupling is the primary porting cost:
+      flag every TcEx import, playbook-variable read/write, and batch helper used.
+      Mark which apps need a full code review before conversion.
+    template: |
+      | Custom App | Language | Source Located? | TcEx Coupling Notes | Needs Code Review |
+      |-----------|----------|-----------------|---------------------|-------------------|
+      | {{app}} | {{language}} | {{source_located}} | {{tcex_coupling}} | {{review_flag}} |
+
+  - id: dependency-graph
+    title: Dependency Graph
+    instruction: |
+      Express the execution flow trigger → nodes → outputs → TC writes. Use a
+      directed list or mermaid graph so downstream Kestra DAG design has a faithful
+      map. Call out fan-out, loops, conditional branches, and join points.
+    template: |
+      ```mermaid
+      graph TD
+        {{trigger_node}} --> {{first_node}}
+        {{first_node}} --> {{...}}
+      ```
+      - **Fan-out points:** {{fanout}}
+      - **Loops / iteration:** {{loops}}
+      - **Conditional branches:** {{branches}}
+      - **Join / merge points:** {{joins}}
+
+  - id: tc-writes
+    title: TC Writes
+    instruction: |
+      Catalogue every write back into ThreatConnect. This is the highest-risk surface
+      (destructive / data-integrity). Record indicators, groups, tags, attributes, and
+      associations created or updated, with the owner and whether the write is
+      create-vs-update-vs-delete.
+    template: |
+      | TC Object | Operation | Owner | Created/Updated Fields | Notes |
+      |-----------|-----------|-------|------------------------|-------|
+      | {{object}} | {{op}} | {{tc_owner}} | {{fields}} | {{notes}} |
+
+  - id: risk-sensitivity
+    title: Risk & Sensitivity Flags
+    instruction: |
+      Flag anything that raises risk or compliance sensitivity: destructive TC writes,
+      outbound actions (mail, ticketing, blocking), PII/regulated data, privileged
+      credentials, and judgment/ambiguity points that may need an agent. Re-confirm
+      internal/local-only handling.
+    template: |
+      - **Destructive / outbound actions:** {{destructive}}
+      - **Sensitive / regulated data:** {{sensitive_data}}
+      - **Privileged credentials touched:** {{privileged}}
+      - **Judgment / NL / ambiguity points (agent candidates):** {{judgment_points}}
+      - **Internal / local-only handling re-confirmed:** {{handling_confirmed}}
