@@ -28,12 +28,17 @@ stripping TcEx coupling. The output is a per-node decomposition table that tells
    budget ONLY where judgment is irreducible.]]
 
 3. **Assign a target to each node.** Map every node to exactly one target:
-   - **Kestra task** — deterministic control flow, transforms, fan-out, scheduling.
+   - **dbt model** — deterministic transformation of data *at rest* (normalize, dedup,
+     score, indicator typing, tagging rules, versioning via snapshots, relationship
+     modeling). Much of what looks like "playbook logic" lands here. See `dbt-patterns-kb.md`.
+   - **Kestra task** — deterministic action *across systems*: triggers, API/enrichment
+     calls, write-backs, notify, fan-out, scheduling, branching; also *runs dbt* as a step.
    - **ADK FunctionTool** — a deterministic capability an agent calls (lookup, fetch,
      compute) — still deterministic code, just callable by an agent.
    - **ADK agent** — irreducible judgment/NL/ambiguity (use a shared library agent).
    - **shared TC client** — any read/write to TC (indicators, groups, tags, batch).
-   [[LLM: Routine TC reads/writes go through the shared TC v3 REST/Batch client as
+   [[LLM: Apply the lane rule — data at rest → dbt; across systems → Kestra; judgment →
+   agent. Routine TC reads/writes go through the shared TC v3 REST/Batch client as
    deterministic calls — NOT through an agent. An agent may *decide* to write, but the
    write itself is a deterministic TC-client call or FunctionTool.]]
 

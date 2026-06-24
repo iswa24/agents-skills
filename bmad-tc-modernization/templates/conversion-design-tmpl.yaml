@@ -42,10 +42,11 @@ sections:
     title: Per-Node Decomposition
     instruction: |
       For every node from the Playbook Analysis node inventory, assign a target.
-      Target MUST be one of: Kestra task | ADK FunctionTool | ADK agent | shared TC client.
-      Default to deterministic targets. Only assign "ADK agent" when at least one of the
-      judgment / NL / ambiguity flags is true, and explain it. FunctionTool means a
-      deterministic tool an agent may call — still deterministic logic, not reasoning.
+      Target MUST be one of: dbt model | Kestra task | ADK FunctionTool | ADK agent | shared TC client.
+      Apply the lane rule: transform data at rest → dbt model; act across systems → Kestra;
+      judge/interpret → ADK agent. Default to deterministic targets (dbt or Kestra). Only
+      assign "ADK agent" when at least one of the judgment / NL / ambiguity flags is true,
+      and explain it. FunctionTool means a deterministic tool an agent may call.
     template: |
       | Node ID | Target | Judgment? | NL? | Ambiguity? | Justification |
       |---------|--------|-----------|-----|-----------|---------------|

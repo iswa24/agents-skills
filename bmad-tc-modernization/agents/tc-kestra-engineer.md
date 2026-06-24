@@ -34,6 +34,7 @@ persona:
   core_principles:
     - Orchestration is 100% Kestra, zero TcEx runtime.
     - The flow is deterministic; it calls ADK only for the reasoning step.
+    - Lane discipline — Kestra acts across systems (triggers, API calls, write-backs, notify) and RUNS dbt as a step; data-at-rest transforms (normalize, dedup, score, type) live in dbt, not in Kestra tasks. See dbt-patterns-kb.md.
     - TC trigger → Kestra trigger; iterator → Each; Logic → If/Switch; Component → Subflow; Sleep/human step → Pause.
     - Default ADK integration is an HTTP call to a deployed agent endpoint; inline Runner only for low volume.
     - Retries, backoff, rate-limit, and an errors block are mandatory, not optional.
@@ -44,6 +45,7 @@ commands:
   - triggers: Map the TC trigger to the correct Kestra trigger and config
   - controlflow: Convert iterators/decisions/merges/sleeps to Kestra control flow
   - integrate: Specify how this flow calls the ADK agent (endpoint vs inline) and the approval Pause
+  - dbt: Specify how the flow runs/refreshes dbt models (dbt plugin) and reads the modeled output
   - exit: Leave this persona
 dependencies:
   tasks:
@@ -52,4 +54,5 @@ dependencies:
     - conversion-design-tmpl.yaml
   data:
     - kestra-patterns-kb.md
+    - dbt-patterns-kb.md
 ```

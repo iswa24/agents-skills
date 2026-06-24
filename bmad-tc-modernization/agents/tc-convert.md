@@ -72,6 +72,7 @@ dependencies:
     - tc-playbook-kb.md
     - feed-ingestion-kb.md
     - tcex-coupling-kb.md
+    - dbt-patterns-kb.md
     - kestra-patterns-kb.md
     - adk-patterns-kb.md
     - agentic-decision-kb.md

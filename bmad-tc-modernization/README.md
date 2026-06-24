@@ -11,6 +11,8 @@ A BMAD expansion pack of expert agents and skills that **review ThreatConnect pl
 
 **Deterministic stays deterministic.** Regex, JSON-path, API enrichment, and TC CRUD become deterministic Kestra tasks or ADK `FunctionTool`s — never LLM calls. An agent is justified **only** by judgment, natural language, or ambiguity.
 
+**Four-layer stack & the lane rule.** Data Lake = storage. **dbt** = the data-model layer (normalize, dedup, score, type, version — *most of a playbook's "logic"*). **Kestra** = orchestration across systems (triggers, API calls, write-backs, notify; runs dbt as a step). **ADK agents** = reasoning. Lane rule: **transform data at rest → dbt; act across systems → Kestra; judge/interpret → agent.**
+
 **You fully exit TcEx.** Carry forward only knowledge, re-expressed as a clean TC v3 REST/Batch client.
 
 **~6–10 reusable agents serve all 60 playbooks**, not 60 agents. One parameterized triage agent serves dozens.
@@ -44,6 +46,7 @@ Team bundle: `agent-teams/tc-modernization-team.yaml`.
 - `tc-playbook-kb.md` — ThreatConnect playbook reference + variable typing + data model
 - `tcex-coupling-kb.md` — TcEx patterns → clean replacements (what to strip)
 - `feed-ingestion-kb.md` — the **application/feed layer**: TC app types (Job/Service), feed protocols (TAXII/STIX/REST/webhook), data-logic patterns, both data sinks, and the data-flow extraction method
+- `dbt-patterns-kb.md` — the **data-model layer**: what belongs in dbt (normalize, dedup, score, type, version) vs Kestra vs agents, project layout, dbt↔Kestra integration, the lane rule
 - `kestra-patterns-kb.md` — TC constructs → Kestra flow patterns, with example flows
 - `adk-patterns-kb.md` — ADK agent/tool patterns + the reusable TI agent archetypes
 - `agentic-decision-kb.md` — the deterministic-vs-agent decision rules (the core judgment file)

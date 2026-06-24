@@ -1,10 +1,14 @@
 # Classify Playbook Archetype
 
 ## Purpose
-Classify an inventoried playbook into one of four archetypes (A/B/C/D) that determine
-its target shape. The core rule governs: **deterministic stays deterministic; agents are
-reserved for judgment, natural language, and ambiguity.** This task consumes the
-inventory from `inventory-playbook.md` and writes the archetype + rationale back into
+Classify an inventoried playbook on TWO independent axes that together determine its
+target shape and its migration order:
+1. **Archetype (A/B/C/D)** — how much agentic work it needs. Core rule: **deterministic
+   stays deterministic; agents are reserved for judgment, NL, and ambiguity** — and most
+   deterministic "logic" is data transformation that belongs in **dbt**, not the orchestrator.
+2. **TC-coupling (move-now vs blocked)** — whether it can leave ThreatConnect now or
+   depends on the not-yet-built serving/system-of-record layer.
+This task consumes the inventory from `inventory-playbook.md` and writes both back into
 the analysis doc.
 
 ## Archetype Definitions
@@ -46,18 +50,32 @@ the analysis doc.
    the judgment is real; otherwise prefer the lower-agency archetype to keep cost and
    risk down.]]
 
-5. **Estimate reusable-agent applicability.** From the shared agent library (~6–10
+5. **Classify TC-coupling (move-now vs blocked).** Independent of archetype, decide
+   whether this playbook can leave ThreatConnect now:
+   - **Lake-decoupled (move now)** — its inputs are already in the Data Lake (or
+     producible via dbt) AND its outputs go to the lake or external systems (SIEM/SOAR/
+     ticketing/notify). Nothing depends on TC-internal state.
+   - **TC-coupled (blocked)** — it triggers on TC events, reads/writes TC's curated
+     indicator/group graph, or calls TC-internal apps. It cannot fully leave until the
+     replacement serving / system-of-record layer exists.
+   [[LLM: Use the inventory's trigger, data sources, and TC-writes. The decisive question
+   is: are this playbook's inputs in the lake, and do its outputs avoid TC-internal state?
+   When unsure, mark TC-coupled and name the exact dependency.]]
+   Record the verdict and, for blocked playbooks, the specific TC dependency that blocks it.
+
+6. **Estimate reusable-agent applicability.** From the shared agent library (~6–10
    agents serving all 60 playbooks), list which reusable agents this playbook would use
    (e.g., triage/disposition agent, enrichment-summarizer, investigation planner,
    case-assist). Do NOT propose a bespoke agent unless no shared agent fits — note the
    gap if so.
 
-6. **Estimate the token-cost tier.** Assign Low / Medium / High based on agent count,
+7. **Estimate the token-cost tier.** Assign Low / Medium / High based on agent count,
    reasoning depth, and expected invocation volume from the trigger. Archetype A = none.
 
-7. **Write rationale into the analysis doc.** Record the archetype, the per-dimension
-   tally, the chosen reusable agents, the cost tier, and a 2–4 line rationale that cites
-   the specific nodes that drove the decision.
+8. **Write rationale into the analysis doc.** Record the archetype, the TC-coupling
+   verdict (and any blocking dependency), the per-dimension tally, the chosen reusable
+   agents, the cost tier, and a 2–4 line rationale that cites the specific nodes that
+   drove the decision.
 
 ## Elicitation
 
@@ -68,8 +86,11 @@ archetypes and ask the user to confirm before writing.
 
 ## Output
 - Archetype A/B/C/D + rationale recorded in `playbook-analysis-tmpl.yaml`.
+- TC-coupling verdict (lake-decoupled = move-now, or TC-coupled = blocked + the
+  blocking dependency).
 - List of applicable reusable agents and the token-cost tier.
 
 ## Done When
 - Every node has a judgment/NL/ambiguity score.
 - A single archetype is assigned with cited rationale.
+- The playbook is marked move-now or blocked, with the dependency named if blocked.

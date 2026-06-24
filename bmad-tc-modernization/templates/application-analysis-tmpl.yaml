@@ -60,7 +60,7 @@ sections:
       The core deliverable — every data rule, one row each. Type ∈ map/type/score/tag/attribute/
       label/associate/dedup/filter/enrich/batch. Mark deterministic vs judgment and the target.
     template: |
-      | Rule | Type | Inputs / condition | Deterministic? | Target (Kestra task / ADK tool / TC client / ADK agent) |
+      | Rule | Type | Inputs / condition | Deterministic? | Target (dbt model / Kestra task / ADK tool / TC client / ADK agent) |
       |---|---|---|---|---|
       | {{rule}} | {{rtype}} | {{cond}} | {{det}} | {{target}} |
 

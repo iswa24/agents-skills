@@ -4,11 +4,18 @@ Audience: the agentic architect agent. This is the **most important judgment fil
 It decides which ThreatConnect playbook nodes become deterministic control-plane plumbing and which
 become probabilistic reasoning-plane agents.
 
-**Two-plane architecture:**
-- **Kestra = control plane (deterministic):** triggers, DAG, fan-out, retries, rate-limits,
-  approval gates, audit, secrets, backfills.
+**Four-layer stack** — the deterministic work has TWO homes; pick the right one:
+- **Data Lake** — storage / system of record (where the feeds already land).
+- **dbt = data-model layer (deterministic, data *at rest*):** normalization, the intel data model,
+  dedup, versioning (snapshots), scoring, typing, tagging rules — *most of a playbook's "logic".*
+- **Kestra = orchestration/control plane (deterministic, *across systems*):** triggers, DAG,
+  fan-out, API/enrichment calls, write-backs, notifications, retries, approval gates, secrets.
+  Runs dbt as a step.
 - **ADK = reasoning plane (probabilistic):** triage, correlate, summarize, decide disposition,
   draft reports.
+
+**Lane rule: transform data at rest → dbt; act across systems → Kestra; judge/interpret → agent.**
+See `dbt-patterns-kb.md`.
 
 ---
 
@@ -21,9 +28,13 @@ A node becomes an **ADK LLM agent ONLY IF** it requires at least one of:
 3. **Ambiguity resolution** — messy/contradictory inputs needing interpretation.
 4. **Synthesis / correlation** — combining multiple sources into a conclusion.
 
-Otherwise the node is a **deterministic Kestra task** or an **ADK `FunctionTool` (no LLM)**. Most
-playbook nodes — transforms, API calls, iteration, branching, CRUD — are deterministic plumbing and
-**must NOT become agents.**
+Otherwise the node is **deterministic** — and deterministic has two homes:
+- a **dbt model** if it *transforms data at rest* (normalize, dedup, score, type, tag, model relationships), or
+- a **Kestra task / ADK `FunctionTool`** if it *acts across systems* (API call, write-back, branch, iterate, CRUD).
+
+Most playbook nodes are deterministic plumbing and **must NOT become agents.** And much of what
+looks like "playbook logic" (scoring, typing, dedup, tagging rules) is really data transformation
+that belongs in **dbt**, not the orchestrator.
 
 ---
 
@@ -31,18 +42,23 @@ playbook nodes — transforms, API calls, iteration, branching, CRUD — are det
 
 | Node | Target | Why |
 |---|---|---|
-| Regex / JSON-path / JMESPath / string transform | Deterministic tool / Kestra task | Pure function, no judgment. |
-| API enrichment call (VT/Shodan/Splunk/ServiceNow) | Deterministic `FunctionTool` | The *call* is deterministic; interpretation is separate. |
+| Normalize raw feed data / field-map to the intel model | **dbt model** (staging) | Transform of data at rest. |
+| Indicator typing (Address/Host/File/URL…) | **dbt model** | SQL classification on data at rest. |
+| Confidence / rating / threat scoring | **dbt model** | Deterministic computation over the model. |
+| **Exact** dedup (type+value+owner) | **dbt model** (incremental + surrogate key) | Rule-based, set-based. |
+| Indicator versioning / history | **dbt snapshot** (SCD2) | The TC-versioning analog, at rest. |
+| Tagging / attribute / association rules over data at rest | **dbt model** | Expressible in SQL. |
+| Regex / JSON-path / string transform *in flight* | Kestra task / ADK tool | Pure function during orchestration. |
+| API enrichment call (VT/Shodan/Splunk/ServiceNow) | Deterministic `FunctionTool` / Kestra | The *call* acts across systems. |
+| Write-back to TC / SIEM / SOAR / ticketing | Kestra task (behind approval gate) | Action across systems. |
+| Iterate over an array | Kestra `EachParallel`/`EachSequential` | Control flow. |
+| Branch on a known condition | Kestra `If`/`Switch` | Deterministic logic. |
+| Event trigger / notification / sleep / merge | Kestra | Orchestration plumbing. |
 | "Is this malicious / what severity?" | **Triage agent** | Judgment. |
 | "Summarize for analyst" / draft report | **Narrative/writer agent** | Natural language generation. |
-| CRUD to TC (create/update indicator/group/tag) | Deterministic tool (behind approval gate) | Mechanical write. |
-| Iterate over an array | Kestra `EachParallel`/`EachSequential` | Control flow, not reasoning. |
-| Branch on a known condition | Kestra `If`/`Switch` | Deterministic logic. |
-| **Exact** dedup (type+value+owner) | Deterministic tool | Rule-based. |
-| **Fuzzy** dedup / entity resolution with judgment | Could be **dedup-judge agent** | Ambiguity. |
+| **Fuzzy** dedup / entity resolution with judgment | **dedup-judge agent** (over the marts) | Ambiguity. |
 | Parse free-text email/report body | **Agent** (then deterministic downstream) | Natural language. |
 | Correlate across multiple intel sources | **Correlation/pivot agent** | Synthesis. |
-| Sleep / delay / merge / set variable | Kestra | Plumbing. |
 
 ---
 
@@ -123,14 +139,18 @@ agents, you are building one-per-app — stop and consolidate.
 ## 8. Decision flow (summary)
 
 ```
-For each playbook node:
-  1. Does it move/shape data, call an API, branch, iterate, or CRUD?
-        -> Deterministic. Kestra task or ADK FunctionTool (no LLM). DONE.
-  2. Does it need judgment, NL, ambiguity resolution, or cross-source synthesis,
+For each playbook node / piece of logic:
+  1. Does it transform data already in the lake
+     (normalize, dedup, score, type, tag, model/version relationships)?
+        -> dbt model (deterministic, tested, versioned). DONE.
+  2. Does it act across systems
+     (API/enrichment call, event trigger, write-back, notify, branch, iterate, CRUD)?
+        -> Kestra task / ADK FunctionTool (deterministic). DONE.
+  3. Does it need judgment, NL, ambiguity resolution, or cross-source synthesis,
      with NO clean deterministic alternative?
         -> ADK LLM agent. Reuse an existing archetype; parameterize. Gate any writes.
-  3. Otherwise -> deterministic by default.
+  4. Otherwise -> deterministic by default.
 ```
 
-Deterministic stays deterministic. Agents are scarce, reusable, gated, and reserved for genuine
-ambiguity and judgment.
+Deterministic stays deterministic — in **dbt** for data at rest, in **Kestra** across systems.
+Agents are scarce, reusable, gated, and reserved for genuine ambiguity and judgment.
